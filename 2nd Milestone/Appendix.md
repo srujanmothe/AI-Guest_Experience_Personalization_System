@@ -1,4 +1,4 @@
-# Milestone 2 - Personalized Hotel Booking System
+![booking 1 ui](https://github.com/user-attachments/assets/a6938b0d-1a0f-41df-8c68-9feba3f33625)# Milestone 2 - Personalized Hotel Booking System
 
 ## Introduction
 This appendix provides an in-depth explanation of the implementation carried out in Milestone 2, where we developed a hotel booking system that personalizes dining recommendations based on customer preferences. This system was built upon the model developed in Milestone 1, utilizing machine learning techniques and database integration to enhance user experience.
@@ -48,4 +48,6 @@ The system comprises the following key components:
 ## Conclusion
 Milestone 2 successfully built upon the model developed in Milestone 1 by integrating it into a functional hotel booking system. The system enhances user experience through personalized dining recommendations and seamless booking confirmation.
 ## Hotel Booking Form
+![booking 1 ui](https://github.com/user-attachments/assets/b215b10f-015f-4933-8211-37a8c4281fbc)
+![booking 2 ui](https://github.com/user-attachments/assets/9dd145cd-998d-49c4-b375-7ce87618dd2d)
 ![1st UI](https://github.com/user-attachments/assets/b7a33a07-b1db-4656-b7c9-6e5fd7371bf9)
