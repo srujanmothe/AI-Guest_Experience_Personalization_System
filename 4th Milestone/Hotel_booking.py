@@ -1,119 +1,42 @@
-import dash
-from dash import dcc, html, Input, Output
-import plotly.express as px
+import streamlit as st
 import pandas as pd
-import numpy as np
-from datetime import datetime, timedelta
+import pymongo
+import plotly.express as px
 
-# Sample Data Generation
-def generate_sample_data():
-    np.random.seed(42)
-    dates = pd.date_range(start="2023-01-01", end="2023-12-31", freq="D")
-    cuisines = ["South Indian", "North Indian", "Multi"]
-    reviews = ["Positive", "Neutral", "Negative"]
-    data = {
-        "date": dates,
-        "bookings": np.random.randint(50, 200, size=len(dates)),
-        "cuisine": np.random.choice(cuisines, size=len(dates)),
-        "stay_duration": np.random.randint(1, 10, size=len(dates)),
-        "review": np.random.choice(reviews, size=len(dates)),
-        "rating": np.random.randint(1, 6, size=len(dates)),
-        "dining_cost": np.random.randint(100, 1000, size=len(dates)),
-    }
-    return pd.DataFrame(data)
+# MongoDB Connection
+client = pymongo.MongoClient("mongodb://localhost:27017/")
+db = client["hotel_data"]
+booking_collection = db["booking_data"]
 
-# Load sample data
-df = generate_sample_data()
+# Fetch Data from MongoDB
+def load_data():
+    data = pd.DataFrame(list(booking_collection.find()))
+    if "_id" in data.columns:
+        data.drop(columns=["_id"], inplace=True)
+    return data
 
-# Initialize Dash app
-app = dash.Dash(__name__)
+# Load Data
+data = load_data()
 
-# Layout of the dashboard with tabs
-app.layout = html.Div([
-    html.H1("Hotel Management Dashboard", style={"textAlign": "center"}),
-    
-    # Tabs for different dashboards
-    dcc.Tabs(id="tabs", value="tab-1", children=[
-        dcc.Tab(label="Hotel Booking Insights", value="tab-1"),
-        dcc.Tab(label="Dining Insights", value="tab-2"),
-        dcc.Tab(label="Reviews Analysis", value="tab-3"),
-    ]),
-    
-    # Tab content
-    html.Div(id="tabs-content")
-])
+# Convert date columns
+data["booking_date"] = pd.to_datetime(data["booking_date"], errors='coerce')
 
-# Callbacks to render tab content
-@app.callback(
-    Output("tabs-content", "children"),
-    Input("tabs", "value")
-)
-def render_tab_content(tab):
-    if tab == "tab-1":
-        # Hotel Booking Insights
-        return html.Div([
-            html.H2("Hotel Booking Insights"),
-            
-            # Bookings per Day (Scatter Plot)
-            html.Div([
-                html.H3("Bookings per Day"),
-                dcc.Graph(id="bookings-per-day", figure=px.scatter(df, x="date", y="bookings", title="Bookings per Day"))
-            ]),
-            
-            # Trend of Cuisines Over Time (Bar Plot)
-            html.Div([
-                html.H3("Trend of Cuisines Over Time"),
-                dcc.Graph(id="cuisine-trend", figure=px.bar(df.groupby(["date", "cuisine"]).size().reset_index(name="count"), 
-                                                           x="date", y="count", color="cuisine", title="Trend of Cuisines Over Time"))
-            ]),
-            
-            # Average Stay Duration per Customer (Weekly Scatter Plot)
-            html.Div([
-                html.H3("Average Stay Duration per Customer (Weekly)"),
-                dcc.Graph(id="stay-duration-weekly", figure=px.scatter(df.resample("W", on="date").mean().reset_index(), 
-                                                                      x="date", y="stay_duration", title="Average Stay Duration per Customer (Weekly)"))
-            ]),
-        ])
-    
-    elif tab == "tab-2":
-        # Dining Insights
-        return html.Div([
-            html.H2("Dining Insights"),
-            
-            # Average Dining Cost by Cuisine (Pie Chart)
-            html.Div([
-                html.H3("Average Dining Cost by Cuisine"),
-                dcc.Graph(id="dining-cost-pie", figure=px.pie(df.groupby("cuisine")["dining_cost"].mean().reset_index(), 
-                                                             names="cuisine", values="dining_cost", title="Average Dining Cost by Cuisine"))
-            ]),
-            
-            # Customer Count Over Time (Line Chart)
-            html.Div([
-                html.H3("Customer Count Over Time"),
-                dcc.Graph(id="customer-count-line", figure=px.line(df.groupby("date").size().reset_index(name="count"), 
-                                                                  x="date", y="count", title="Customer Count Over Time"))
-            ]),
-        ])
-    
-    elif tab == "tab-3":
-        # Reviews Analysis
-        return html.Div([
-            html.H2("Reviews Analysis"),
-            
-            # Sentiment Analysis (Pie Chart)
-            html.Div([
-                html.H3("Sentiment Analysis"),
-                dcc.Graph(id="sentiment-pie", figure=px.pie(df["review"].value_counts().reset_index(), 
-                                                           names="index", values="review", title="Sentiment Analysis"))
-            ]),
-            
-            # Rating Distribution (Histogram)
-            html.Div([
-                html.H3("Rating Distribution"),
-                dcc.Graph(id="rating-histogram", figure=px.histogram(df, x="rating", title="Rating Distribution"))
-            ]),
-        ])
+# Streamlit App
+st.title("Hotel Booking Insights")
 
-# Run the app
-if __name__ == "__main__":
-    app.run_server(debug=True)
+# Line Chart: Bookings Over Time
+st.subheader("Bookings Trend Over Time")
+fig = px.line(data, x="booking_date", y="booking_count", title="Daily Hotel Bookings")
+st.plotly_chart(fig)
+
+# Preferred Cuisine Analysis
+st.subheader("Preferred Cuisine Analysis")
+cuisine_count = data["preferred_cuisine"].value_counts()
+st.bar_chart(cuisine_count)
+
+# Average Length of Stay Analysis
+st.subheader("Average Length of Stay")
+data["stay_length"] = pd.to_numeric(data["stay_length"], errors='coerce')
+avg_stay = data.groupby(pd.Grouper(key="booking_date", freq='M'))["stay_length"].mean()
+fig = px.bar(avg_stay, title="Average Length of Stay (Monthly)")
+st.plotly_chart(fig)
