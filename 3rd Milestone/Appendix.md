@@ -33,3 +33,4 @@ Milestone 3 involved integrating Together AI embeddings, Pinecone for vector sto
 
 ⭐ Visualization enhancements using word clouds and sentiment scores.
 
+![Customer review UI](https://github.com/user-attachments/assets/b6f690a8-b4e6-42c9-8f8a-270aa98a6215)
