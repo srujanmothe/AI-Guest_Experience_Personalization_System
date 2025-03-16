@@ -1,4 +1,4 @@
-# Appendix: Milestone 4 - Interactive Hotel Insights Dashboard
+# Milestone 4 - Interactive Hotel Insights Dashboard
 
 ## Milestone Overview
 This milestone introduces an interactive Streamlit-based dashboard system designed to provide insights into hotel bookings, dining preferences, and customer reviews. The dashboards are integrated with the Together.AI API to generate automated explanations for each graph, helping users better understand the data visualizations.
