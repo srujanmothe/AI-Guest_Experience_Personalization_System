@@ -32,5 +32,10 @@ Milestone 3 involved integrating Together AI embeddings, Pinecone for vector sto
 ⭐ User-friendly Streamlit dashboard for customer and manager interactions.
 
 ⭐ Visualization enhancements using word clouds and sentiment scores.
-
+## Customer Review Page
 ![Customer review UI](https://github.com/user-attachments/assets/b6f690a8-b4e6-42c9-8f8a-270aa98a6215)
+![Customer UI](https://github.com/user-attachments/assets/6df3f40a-5ee6-47fd-9246-d4363e70650f)
+![Analyse Customer UI](https://github.com/user-attachments/assets/cb69af33-2c74-4434-a89a-6dcc6d75ed6a)
+## Manager Review Page
+![Manager UI](https://github.com/user-attachments/assets/051ca477-c2f4-43b6-85f2-462fe688ef1e)
+
