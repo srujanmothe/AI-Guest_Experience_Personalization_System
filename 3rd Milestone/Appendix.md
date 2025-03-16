@@ -38,5 +38,4 @@ Milestone 3 involved integrating Together AI embeddings, Pinecone for vector sto
 ![Analyse Customer UI](https://github.com/user-attachments/assets/cb69af33-2c74-4434-a89a-6dcc6d75ed6a)
 ## Manager Review Page
 ![Manager UI](https://github.com/user-attachments/assets/051ca477-c2f4-43b6-85f2-462fe688ef1e)
-![Manager review page UI](https://github.com/user-attachments/assets/0cd38623-a737-40e1-88e4-d2a34547f201)
 
