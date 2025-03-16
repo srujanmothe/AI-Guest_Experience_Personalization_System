@@ -58,21 +58,4 @@ The project is divided into four milestones, each contributing to the developmen
 - **Expanded Personalization Features**: Incorporate additional guest data for deeper insights.
 - **Mobile Application Integration**: Extend functionalities for seamless access.
 
-## How to Run the Project
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/your-repo/AI-Hospitality.git
-   cd AI-Hospitality
-   ```
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Run the Streamlit dashboard:
-   ```bash
-   streamlit run app.py
-   ```
-4. Ensure MongoDB and Pinecone services are running for full functionality.
-
----
 This project delivers an AI-powered solution that transforms guest experiences, providing hotels with the tools needed for personalized service, real-time feedback tracking, and data-driven decision-making.
