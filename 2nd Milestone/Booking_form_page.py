@@ -1,135 +1,238 @@
 import streamlit as st
 import pandas as pd
-import os
-from langchain_together import TogetherEmbeddings
-from pinecone import Pinecone
-from together import Together
-import datetime
+import numpy as np
+import random
+import xgboost
+import joblib
+import pymongo
+from datetime import date
+from sklearn.preprocessing import LabelEncoder
+from pymongo import MongoClient
 
-# 🔹 Set API Keys
-os.environ["TOGETHER_API_KEY"] = "d0138d7876bde3db01c9b87dd4a7fc88b67d130c13d26cb8db4b874cd6feb275"
+client = MongoClient("mongodb+srv://srujanmothe62:bqfGoXX8dktIHyOp@cluster0.ew7nt.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0&ssl=true")
 
-# 🔹 Initialize Pinecone & Together AI
-pc = Pinecone(api_key="pcsk_3Akygq_37NwsGLrrUn2yjAhpNymMFUxqh5ggkET7tZHnmfiuyiwvCFWu5a3gRD3mCvp1KX")
-embeddings = TogetherEmbeddings(model="togethercomputer/m2-bert-80M-8k-retrieval")
-index = pc.Index(host="hotel-reviews-t1jsbtd.svc.aped-4627-b74a.pinecone.io")
-client = Together()
+# Initialize an empty DataFrame to store the data (you can later store it to a file or database)
+columns = ['customer_id', 'Preferred Cuisine', 'age', 'check_in_date', 'check_out_date']
+data = pd.DataFrame(columns=columns)
 
-# 🔹 Load Existing Reviews from Excel
-data_file = "reviews_data.xlsx"
-numeric_data_file = "review_data_numeric.xlsx"
-if os.path.exists(data_file):
-    reviews_df = pd.read_excel(data_file).dropna(how='all')
-else:
-    reviews_df = pd.DataFrame(columns=["review_id", "customer_id", "Review", "review_date", "Rating"])
+# Load Data (If provided, integrate dining_info.xlsx)
+def load_data():
+    try:
+        df = pd.read_excel(r"D:\Srujan\Projects\Infosys\dining_info.xlsx")
+        return df
+    except Exception as e:
+        st.error("Error loading data: " + str(e))
+        return None
 
-if os.path.exists(numeric_data_file):
-    numeric_reviews_df = pd.read_excel(numeric_data_file).dropna(how='all')
-else:
-    numeric_reviews_df = pd.DataFrame(columns=["review_id", "customer_id", "Rating"])
+# Streamlit App
+st.set_page_config(page_title="Multi-Cuisine Hotel", layout="wide")
 
-# 🔹 Streamlit UI
-st.title("🍽️ Customer Review Page")
-st.write("Submit your review and analyze customer sentiment !!  It's helps us improve. 💬")
+st.title("Welcome to The Grand Multi-Cuisine Hotel")
+st.subheader("Experience world-class dining with flavors from across the globe!")
 
-# 🔹 User Inputs for Review Submission
-st.subheader("✍️ Write Your Review")
-customer_id = st.text_input("🔢 Customer ID", placeholder="Enter your Customer ID")
-review_text = st.text_area("Write your review here:", placeholder="Share your experience...")
-review_date = st.date_input("📅 Review Date", value=datetime.date.today())
-rating = st.slider("⭐ Rate your experience (1 = Poor, 10 = Excellent)", 1, 10, 5)
+# Sidebar for Navigation
+st.sidebar.header("Navigation")
+menu = st.sidebar.radio("Go to", ["Home", "Cuisines", "Special Offers", "Reviews", "Contact Us"])
 
-# 🔹 Submit Review Button
-if st.button("Submit Review"):
-    if review_text.strip() == "" or customer_id.strip() == "":
-        st.error("❌ Please enter both Customer ID and review before submitting.")
+
+# Home Page
+if menu == "Home":
+    st.image(r"D:\Srujan\Projects\Infosys\hotel_img.jpeg", use_column_width=True)
+    st.write("Enjoy luxury dining with exquisite flavors from various cultures. Our chefs bring authenticity and innovation to every dish!")
+    
+
+    # Ask if the customer has a customer_id
+    has_customer_id = st.radio("Do you have a Customer ID?", ("Yes", "No"))
+
+    if has_customer_id == "Yes":
+        customer_id = st.text_input("Enter your Customer ID", "")
     else:
-        # Generate a unique Review ID
-        review_id = f"R{len(reviews_df) + 1:05d}"
-        
-        # Generate embedding for the review
-        review_embedding = embeddings.embed_query(review_text)
-        
-        # Store the review in Pinecone
-        index.upsert(vectors=[{
-            "id": review_id,
-            "values": review_embedding,
-            "metadata": {
-                "customer_id": customer_id,
-                "Review": review_text,
-                "review_date": review_date.strftime("%Y-%m-%d"),
-                "Rating": rating
+        # If they don't have an ID, generate one (greater than 10000)
+        customer_id = random.randint(10001, 99999)
+        st.write(f"Your generated Customer ID: {customer_id}")
+
+    # User Inputs
+    name = st.text_input("Enter your name", "")
+    checkin_date = st.date_input("Check-in Date", min_value=date.today())
+    checkout_date = st.date_input("Check-out Date", min_value=checkin_date)
+    age = st.number_input("Enter your age", min_value=18, max_value=120, step=1)
+    stayers = st.number_input("How many stayers in total?", min_value=1, max_value=3, step=1)
+    cuisine_options = ["South Indian", "North Indian", "Multi"]
+    preferred_cuisine = st.selectbox("Preferred Cuisine", cuisine_options)
+    booking_options = ["Yes", "No"]
+    preferred_booking = st.selectbox("Do you want to book through points?", booking_options)
+
+    # Special Requests (Optional)
+    special_requests = st.text_area("Any Special Requests? (Optional)", "")
+
+    # Submit Button
+
+    if st.button("Submit Booking"):
+        if name and customer_id:
+            # Collect data into a new row
+            new_data = {
+                'customer_id': customer_id,
+                'Preferred Cusine': preferred_cuisine,
+                'age': age,
+                'check_in_date': checkin_date,
+                'check_out_date': checkout_date,
+                'booked_through_points':preferred_booking,
+                'number_of_stayers':stayers
+
             }
-        }])
-        
-        # Append new review to DataFrame
-        new_review = pd.DataFrame({
-            "review_id": [review_id],
-            "customer_id": [customer_id],
-            "Review": [review_text],
-            "review_date": [review_date.strftime("%Y-%m-%d")],
-            "Rating": [rating]
-        })
-        reviews_df = pd.concat([reviews_df, new_review], ignore_index=True).dropna(how='all')
-        
-        # Append to numeric dataset
-        new_numeric_review = pd.DataFrame({
-            "review_id": [review_id],
-            "customer_id": [customer_id],
-            "Rating": [rating]
-        })
-        numeric_reviews_df = pd.concat([numeric_reviews_df, new_numeric_review], ignore_index=True).dropna(how='all')
-        
-        # Save to Excel
-        reviews_df.to_excel(data_file, index=False)
-        numeric_reviews_df.to_excel(numeric_data_file, index=False)
-        st.success("✅ Thank you for your review! It has been saved and stored in Pinecone.")
-        
-        # Show submitted reviews
-        st.session_state.show_reviews = True
-
-# 🔹 Display Submitted Reviews (Initially Hidden)
-if "show_reviews" not in st.session_state:
-    st.session_state.show_reviews = False
-
-if st.session_state.show_reviews:
-    if not reviews_df.empty:
-        st.subheader("📋 Submitted Reviews")
-        st.dataframe(reviews_df[["review_id", "customer_id", "Review", "review_date", "Rating"]])
-
-# 🔹 Sentiment Analysis Section
-st.subheader("🔍 Analyze Customer Sentiment")
-query = st.text_input("Enter a query about customer reviews:", "How is the food quality?")
-rating_filter = st.slider("⭐ Filter Reviews by Rating", 1, 10, (1, 10))
-
-if st.button("Analyze Sentiment"):
-    if query:
-        # Generate embedding for the query
-        query_embedding = embeddings.embed_query(query)
-        
-        # 🔎 Search in Pinecone
-        results = index.query(vector=query_embedding, top_k=5, include_metadata=True)
-        
-        # 🔄 Include the latest review as well
-        latest_review = reviews_df.iloc[-1].to_dict() if not reviews_df.empty else None
-        if latest_review:
-            results["matches"].insert(0, {"metadata": latest_review})
-        
-        # 🔄 Filter results based on user-selected rating
-        filtered_reviews = []
-        for match in results['matches']:
-            metadata = match['metadata']
-            review_rating = metadata.get("Rating", 5)
             
-            # Apply rating filter
-            if rating_filter[0] <= review_rating <= rating_filter[1]:
-                filtered_reviews.append(metadata)
+            # Append the new data to the dataframe
+            new_df = pd.DataFrame([new_data])
 
-        # 📋 Display Results
-        if filtered_reviews:
-            st.subheader("📊 Matching Reviews")
-            st.write(pd.DataFrame(filtered_reviews)[["review_id", "customer_id", "Review", "review_date", "Rating"]])
+
+            new_df['booked_through_points'] = new_df['booked_through_points'].apply(lambda x: 1 if x=='Yes' else 0)
+            
+            new_df['customer_id'] = new_df['customer_id'].astype(int)
+
+            new_df['check_in_date'] = pd.to_datetime(new_df['check_in_date'])
+            new_df['check_out_date'] = pd.to_datetime(new_df['check_out_date'])
+            
+            db = client["hotel_guests"]
+            new_bookings_collection = db["new_bookings"]
+            
+            # Insert the new booking data into the collection
+            result = new_bookings_collection.insert_one(new_df.iloc[0].to_dict())
+
+            
+            new_df['check_in_day'] = new_df['check_in_date'].dt.dayofweek  # Monday=0, Sunday=6
+            new_df['check_out_day'] = new_df['check_out_date'].dt.dayofweek
+            new_df['check_in_month'] = new_df['check_in_date'].dt.month
+            new_df['check_out_month'] = new_df['check_out_date'].dt.month
+            new_df['stay_duration'] = (new_df['check_out_date'] - new_df['check_in_date']).dt.days
+            
+            
+
+
+
+            customer_features = pd.read_excel('dining_info.xlsx')
+            customer_dish = pd.read_excel('dining_info.xlsx')
+
+            cuisine_features = pd.read_excel('dining_info.xlsx')
+            cuisine_dish = pd.read_excel('dining_info.xlsx')
+
+            data['customer_id'] = data['customer_id'].astype(int)
+            customer_features['customer_id'] = customer_features['customer_id'].astype(int)
+            customer_dish['customer_id'] = customer_dish['customer_id'].astype(int)
+
+
+            new_df = new_df.merge(customer_features, on='customer_id', how='left')
+            new_df = new_df.merge(cuisine_features, on='Preferred Cusine', how='left')
+            new_df = new_df.merge(customer_dish, on='customer_id', how='left')
+            new_df = new_df.merge(cuisine_dish, on='Preferred Cusine', how='left')
+
+            new_df.drop(['customer_id','check_in_date','check_out_date'],axis=1,inplace=True)
+
+            encoder = joblib.load('encoder.pkl')
+
+            categorical_cols = ['Preferred Cusine', 'most_frequent_dish','cuisine_popular_dish']
+
+            encoded_test = encoder.transform(new_df[categorical_cols])
+
+            encoded_test_df = pd.DataFrame(
+                encoded_test, columns=encoder.get_feature_names_out(categorical_cols))
+
+            new_df = pd.concat([new_df.drop(columns=categorical_cols), encoded_test_df], axis=1)
+
+            features = list(pd.read_excel('dining_info.xlsx')[0])
+
+            label_encoder = joblib.load('label_encoder.pkl')
+
+            new_df = new_df[features]
+
+            model = joblib.load('xgb_model_dining.pkl')
+
+
+            y_pred_prob = model.predict_proba(new_df)
+            dish_names = label_encoder.classes_
+
+            prob_df = pd.DataFrame(y_pred_prob, columns=dish_names)
+
+            # Add the true dish labels (y_test) as a separate column
+        
+            top_3_indices = np.argsort(-y_pred_prob, axis=1)[:, :3]  # Negative for descending order
+
+            # Retrieve dish names for the top 3 predictions
+            top_3_dishes = dish_names[top_3_indices]
+
+            # Create DataFrame with top 3 dishes
+            prob_df["top_1"] = top_3_dishes[:, 0]
+            prob_df["top_2"] = top_3_dishes[:, 1]
+            prob_df["top_3"] = top_3_dishes[:, 2]
+
+
+            # Display success message and booking information
+            st.success(f"✅ Booking Confirmed for {name} (Customer ID: {customer_id})!")
+            st.write(f"**Check-in:** {checkin_date}")
+            st.write(f"**Check-out:** {checkout_date}")
+            st.write(f"**Age:** {age}")
+            st.write(f"**Preferred Cusine:** {preferred_cuisine}")
+            if special_requests:
+                st.write(f"**Special Requests:** {special_requests}")
+            
+            # Display the dataframe
+            st.write("Booking Data so far:")
+
+            dishes = [
+            prob_df["top_1"].iloc[0],
+            prob_df["top_2"].iloc[0],
+            prob_df["top_3"].iloc[0]
+            ]
+
+            thali_dishes = [dish.lower() for dish in dishes if "thali" in dish]
+            other_dishes = [dish.lower() for dish in dishes if "thali" not in dish]
+
+            st.write("Discounts for you!")
+
+            # Display discount messages based on the dish type
+            if thali_dishes:
+                st.write(f"Get 20% off on {', '.join(thali_dishes)}")
+            if other_dishes:
+                st.write(f"Get 15% off on {', '.join(other_dishes)}")
+            
+            st.write("Check your coupon code on your email!")
+
         else:
-            st.warning("⚠️ No matching reviews found for the given filters.")
-    else:
-        st.error("❌ Please enter a query to analyze sentiment.")
+            st.warning("⚠️ Please enter your name and Customer ID to proceed!")
+
+
+
+# Cuisine Section
+elif menu == "Cuisines":
+    st.header("Our Special Cuisines")
+    cuisines = ["Italian", "Chinese", "Indian", "Mexican", "French", "Japanese"]
+    selected_cuisine = st.selectbox("Choose a Cuisine", cuisines)
+    st.write(f"### {selected_cuisine} Delights")
+    st.write("Explore the best dishes from this cuisine prepared by expert chefs!")
+
+# Special Offers
+elif menu == "Special Offers":
+    st.header("Exclusive Offers & Discounts")
+    st.write("Stay tuned for seasonal discounts and special combos!")
+
+# Customer Reviews
+elif menu == "Reviews":
+    st.header("What Our Guests Say")
+    reviews = ["The food was amazing! - Saathvik raj", "Loved the ambiance! - Snehith Silveri", "A must-visit for food lovers - Sowmya Sri"]
+    for review in reviews:
+        st.write(f"📌 {review}")
+    st.text_area("Leave a Review")
+
+# Contact Section
+elif menu == "Contact Us":
+    st.header("Get in Touch")
+    st.write("📍 Location: Hyderabad, Telangana")
+    st.write("📞 Phone: +123 456 7890")
+    st.write("📧 Email: info@grandhotel.com")
+    
+    name = st.text_input("Your Name")
+    message = st.text_area("Your Message")
+    if st.button("Send Message"):
+        st.success("Thank you for reaching out! We'll get back to you soon.")
+
+st.sidebar.write("---")
+st.sidebar.write("© 2025 The Grand Multi-Cuisine Hotel")
