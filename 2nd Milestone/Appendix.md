@@ -47,3 +47,5 @@ The system comprises the following key components:
 
 ## Conclusion
 Milestone 2 successfully built upon the model developed in Milestone 1 by integrating it into a functional hotel booking system. The system enhances user experience through personalized dining recommendations and seamless booking confirmation.
+## Hotel Booking Form
+![1st UI](https://github.com/user-attachments/assets/b7a33a07-b1db-4656-b7c9-6e5fd7371bf9)
