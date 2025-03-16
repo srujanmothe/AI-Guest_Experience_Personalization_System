@@ -24,8 +24,12 @@ Milestone 3 involved integrating Together AI embeddings, Pinecone for vector sto
 
 ## Final Outcomes
 ⭐ Efficient storage and retrieval of customer reviews using Pinecone.
+
 ⭐ AI-powered summarization for quick managerial insights.
+
 ⭐ Real-time sentiment detection and manager notifications.
+
 ⭐ User-friendly Streamlit dashboard for customer and manager interactions.
+
 ⭐ Visualization enhancements using word clouds and sentiment scores.
 
